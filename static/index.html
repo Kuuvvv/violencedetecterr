@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SENTINEL — Violence Detection System</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #080b0f;
+    --surface: #0d1117;
+    --surface2: #131a22;
+    --border: #1e2a36;
+    --accent: #e8281e;
+    --accent2: #ff5a50;
+    --safe: #00e676;
+    --warn: #ffab00;
+    --text: #c9d4df;
+    --text-dim: #566573;
+    --text-bright: #eaf2fb;
+    --mono: 'Share Tech Mono', monospace;
+    --display: 'Barlow Condensed', sans-serif;
+    --body: 'Barlow', sans-serif;
+    --glow-red: 0 0 20px rgba(232,40,30,0.35);
+    --glow-green: 0 0 20px rgba(0,230,118,0.25);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8,11,15,0.95);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    border: 2px solid var(--accent);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--glow-red);
+    animation: pulse-border 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-border {
+    0%, 100% { box-shadow: 0 0 8px rgba(232,40,30,0.4); }
+    50% { box-shadow: 0 0 20px rgba(232,40,30,0.8); }
+  }
+
+  .logo-icon svg { width: 20px; height: 20px; fill: var(--accent); }
+
+  .logo-text {
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: 22px;
+    letter-spacing: 4px;
+    color: var(--text-bright);
+    text-transform: uppercase;
+  }
+
+  .logo-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+
+  .status-dot.active {
+    background: var(--safe);
+    box-shadow: 0 0 10px var(--safe);
+    animation: blink 1s infinite;
+  }
+
+  .status-dot.alert {
+    background: var(--accent);
+    box-shadow: var(--glow-red);
+    animation: blink 0.4s infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* NAV TABS */
+  .nav-tabs {
+    display: flex;
+    gap: 2px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    padding: 0 32px;
+  }
+
+  .tab-btn {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: none;
+    border: none;
+    padding: 14px 20px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.2s;
+  }
+
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* MAIN LAYOUT */
+  .main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px;
+  }
+
+  /* TAB PANELS */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* MONITOR TAB */
+  .monitor-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 24px;
+    align-items: start;
+  }
+
+  /* VIDEO AREA */
+  .video-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .video-card.violence-active {
+    border-color: var(--accent);
+    box-shadow: var(--glow-red), inset 0 0 40px rgba(232,40,30,0.08);
+    animation: alert-flash 0.5s ease-in-out infinite alternate;
+  }
+
+  @keyframes alert-flash {
+    from { box-shadow: 0 0 15px rgba(232,40,30,0.4); }
+    to { box-shadow: 0 0 40px rgba(232,40,30,0.8); }
+  }
+
+  .video-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  .video-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .video-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+  }
+
+  .badge-normal { background: rgba(0,230,118,0.1); color: var(--safe); border: 1px solid rgba(0,230,118,0.3); }
+  .badge-alert { background: rgba(232,40,30,0.15); color: var(--accent2); border: 1px solid rgba(232,40,30,0.5); }
+  .badge-idle { background: rgba(86,101,115,0.2); color: var(--text-dim); border: 1px solid var(--border); }
+
+  .video-wrapper {
+    position: relative;
+    background: #000;
+    aspect-ratio: 16/9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #video-feed {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: none;
+  }
+
+  .video-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    color: var(--text-dim);
+  }
+
+  .video-placeholder svg { width: 56px; height: 56px; opacity: 0.3; }
+
+  .video-placeholder p {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+
+  /* SCORE BAR */
+  .score-bar-wrap {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  .score-label-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  #score-value {
+    font-size: 13px;
+    font-weight: bold;
+    transition: color 0.3s;
+  }
+
+  .score-track {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .score-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 3px;
+    background: var(--safe);
+    transition: width 0.4s ease, background 0.4s;
+  }
+
+  /* SIDEBAR */
+  .sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  .card-body { padding: 16px; }
+
+  /* CONTROL BUTTONS */
+  .source-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .src-btn {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-dim);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .src-btn:hover { border-color: var(--accent); color: var(--text); }
+  .src-btn.selected { background: rgba(232,40,30,0.1); border-color: var(--accent); color: var(--accent); }
+
+  #file-upload-area {
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  #file-upload-area:hover { border-color: var(--accent); }
+  #file-upload-area.has-file { border-color: var(--safe); }
+
+  #file-upload-area p {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 8px;
+  }
+
+  #file-input { display: none; }
+
+  .btn-start {
+    width: 100%;
+    padding: 14px;
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: 15px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(232,40,30,0.3);
+  }
+
+  .btn-start:hover { background: var(--accent2); box-shadow: 0 4px 24px rgba(232,40,30,0.5); }
+
+  .btn-stop {
+    width: 100%;
+    padding: 14px;
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: 15px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+    display: none;
+  }
+
+  .btn-stop:hover { background: rgba(232,40,30,0.1); }
+
+  /* CONFIG */
+  .config-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(30,42,54,0.5);
+    font-size: 12px;
+  }
+
+  .config-row:last-child { border-bottom: none; }
+  .config-key { font-family: var(--mono); color: var(--text-dim); font-size: 11px; }
+  .config-val { font-family: var(--mono); color: var(--text-bright); font-size: 12px; }
+
+  /* ALERT BADGE (big) */
+  #alert-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    background: linear-gradient(to bottom, rgba(232,40,30,0.85), transparent);
+    padding: 16px 20px 40px;
+    display: none;
+    animation: slide-in 0.3s ease;
+    z-index: 10;
+  }
+
+  @keyframes slide-in {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  #alert-overlay .alert-text {
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: 26px;
+    letter-spacing: 6px;
+    color: white;
+    text-shadow: 0 0 20px rgba(255,100,80,0.8);
+  }
+
+  #alert-overlay .alert-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.7);
+    margin-top: 4px;
+  }
+
+  /* HISTORY TAB */
+  .history-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 20px;
+  }
+
+  .incident-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    animation: card-in 0.4s ease both;
+  }
+
+  @keyframes card-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .incident-card:hover {
+    border-color: rgba(232,40,30,0.4);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  .incident-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .incident-id {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+
+  .incident-score {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .incident-meta {
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .meta-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .meta-row svg { width: 13px; height: 13px; flex-shrink: 0; fill: var(--text-dim); }
+  .meta-row span { font-family: var(--mono); font-size: 11px; }
+
+  .screenshots-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    padding: 0 12px 12px;
+  }
+
+  .thumb {
+    aspect-ratio: 16/9;
+    background: #000;
+    border-radius: 3px;
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.2s;
+  }
+
+  .thumb:hover img { transform: scale(1.05); }
+
+  .thumb::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(232,40,30,0.2);
+    border-radius: 3px;
+    pointer-events: none;
+  }
+
+  /* Lightbox */
+  #lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    cursor: pointer;
+  }
+
+  #lightbox.open { display: flex; }
+  #lightbox img { max-width: 90vw; max-height: 80vh; object-fit: contain; border-radius: 4px; }
+  #lightbox p {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+
+  /* HISTORY HEADER */
+  .history-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .history-title {
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: 28px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--text-bright);
+  }
+
+  .history-count {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  .btn-clear {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--text-dim);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-clear:hover { border-color: var(--accent); color: var(--accent); }
+
+  .empty-state {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--text-dim);
+  }
+
+  .empty-state svg { width: 48px; height: 48px; opacity: 0.2; margin-bottom: 16px; }
+  .empty-state p { font-family: var(--mono); font-size: 12px; letter-spacing: 1px; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .monitor-grid { grid-template-columns: 1fr; }
+    .main { padding: 16px; }
+    .history-grid { grid-template-columns: 1fr; }
+    .nav-tabs { padding: 0 16px; }
+    header { padding: 12px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    </div>
+    <div>
+      <div class="logo-text">SENTINEL</div>
+      <div class="logo-sub">Violence Detection System</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="status-pill">
+      <div class="status-dot" id="main-dot"></div>
+      <span id="main-status-text">STANDBY</span>
+    </div>
+  </div>
+</header>
+
+<!-- NAV TABS -->
+<div class="nav-tabs">
+  <button class="tab-btn active" onclick="switchTab('monitor', this)">⬛ Monitor</button>
+  <button class="tab-btn" onclick="switchTab('history', this)">🗂 Incident History</button>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- MONITOR TAB -->
+  <div id="tab-monitor" class="tab-panel active">
+    <div class="monitor-grid">
+
+      <!-- VIDEO -->
+      <div class="video-card" id="video-card">
+        <div class="video-header">
+          <span class="video-label" id="feed-source-label">NO FEED</span>
+          <span class="video-badge badge-idle" id="detection-badge">IDLE</span>
+        </div>
+        <div class="video-wrapper">
+          <div id="alert-overlay">
+            <div class="alert-text">⚠ VIOLENCE DETECTED</div>
+            <div class="alert-sub">CAPTURING EVIDENCE — SAVING TO HISTORY</div>
+          </div>
+          <img id="video-feed" src="/video_feed" alt="Video Feed"/>
+          <div class="video-placeholder" id="video-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="2" y="7" width="15" height="10" rx="2"/><path d="M17 9l5-3v12l-5-3"/></svg>
+            <p>NO ACTIVE FEED — SELECT SOURCE TO BEGIN</p>
+          </div>
+        </div>
+        <div class="score-bar-wrap">
+          <div class="score-label-row">
+            <span>VIOLENCE SCORE</span>
+            <span id="score-value" style="color: var(--safe)">0.000</span>
+          </div>
+          <div class="score-track">
+            <div class="score-fill" id="score-fill"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SIDEBAR -->
+      <div class="sidebar">
+
+        <!-- CONTROLS -->
+        <div class="card">
+          <div class="card-header">Input Source</div>
+          <div class="card-body">
+            <div class="source-toggle">
+              <button class="src-btn selected" id="btn-webcam" onclick="selectSource('webcam')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+                Webcam
+              </button>
+              <button class="src-btn" id="btn-file" onclick="selectSource('file')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                File
+              </button>
+            </div>
+            <div id="file-upload-area" onclick="document.getElementById('file-input').click()">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: auto; display:block; opacity: 0.4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <p id="file-name-label">CLICK TO SELECT VIDEO FILE</p>
+            </div>
+            <input type="file" id="file-input" accept="video/*" onchange="onFileSelected(this)"/>
+            <button class="btn-start" id="btn-start" onclick="startDetection()">▶ START DETECTION</button>
+            <button class="btn-stop" id="btn-stop" onclick="stopDetection()">■ STOP</button>
+          </div>
+        </div>
+
+        <!-- CONFIG -->
+        <div class="card">
+          <div class="card-header">Configuration</div>
+          <div class="card-body">
+            <div class="config-row">
+              <span class="config-key">THRESHOLD</span>
+              <span class="config-val">0.85</span>
+            </div>
+            <div class="config-row">
+              <span class="config-key">SEQ LENGTH</span>
+              <span class="config-val">64 frames</span>
+            </div>
+            <div class="config-row">
+              <span class="config-key">IMG SIZE</span>
+              <span class="config-val">224 × 224</span>
+            </div>
+            <div class="config-row">
+              <span class="config-key">SKIP FRAMES</span>
+              <span class="config-val">2</span>
+            </div>
+            <div class="config-row">
+              <span class="config-key">MODEL</span>
+              <span class="config-val" style="font-size:10px">fight_detection_model.h5</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- RECENT DETECTIONS (mini) -->
+        <div class="card">
+          <div class="card-header">Recent Alerts</div>
+          <div class="card-body" id="recent-alerts" style="padding: 8px 12px; min-height: 60px;">
+            <p style="font-family: var(--mono); font-size: 11px; color: var(--text-dim); text-align:center; padding: 12px 0;">NO ALERTS YET</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY TAB -->
+  <div id="tab-history" class="tab-panel">
+    <div class="history-toolbar">
+      <div>
+        <div class="history-title">Incident Log</div>
+        <div class="history-count" id="incident-count">0 INCIDENTS RECORDED</div>
+      </div>
+      <button class="btn-clear" onclick="clearHistory()">CLEAR ALL</button>
+    </div>
+    <div class="history-grid" id="history-grid">
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <p>NO INCIDENTS RECORDED</p>
+        <p style="margin-top:8px; font-size: 10px; opacity: 0.5;">VIOLENCE DETECTIONS WILL APPEAR HERE</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" src="" alt="Evidence Screenshot"/>
+  <p id="lightbox-caption"></p>
+</div>
+
+<script>
+  const API = '';
+  let currentSource = 'webcam';
+  let selectedFile = null;
+  let isRunning = false;
+  let pollInterval = null;
+
+  // --- TAB SWITCHING ---
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
+    if (name === 'history') loadHistory();
+  }
+
+  // --- SOURCE SELECTION ---
+  function selectSource(src) {
+    currentSource = src;
+    document.getElementById('btn-webcam').classList.toggle('selected', src === 'webcam');
+    document.getElementById('btn-file').classList.toggle('selected', src === 'file');
+    document.getElementById('file-upload-area').style.display = src === 'file' ? 'block' : 'none';
+  }
+
+  function onFileSelected(input) {
+    if (input.files && input.files[0]) {
+      selectedFile = input.files[0];
+      document.getElementById('file-name-label').textContent = selectedFile.name;
+      document.getElementById('file-upload-area').classList.add('has-file');
+    }
+  }
+
+  // --- START / STOP ---
+  async function startDetection() {
+    if (isRunning) return;
+
+    let ok = false;
+    if (currentSource === 'webcam') {
+      const res = await fetch(`${API}/api/start/webcam`, { method: 'POST' });
+      ok = res.ok;
+    } else {
+      if (!selectedFile) { alert('Please select a video file.'); return; }
+      const fd = new FormData();
+      fd.append('video', selectedFile);
+      const res = await fetch(`${API}/api/start/file`, { method: 'POST', body: fd });
+      ok = res.ok;
+    }
+
+    if (ok) {
+      isRunning = true;
+      document.getElementById('btn-start').style.display = 'none';
+      document.getElementById('btn-stop').style.display = 'block';
+      document.getElementById('video-feed').style.display = 'block';
+      document.getElementById('video-placeholder').style.display = 'none';
+      document.getElementById('feed-source-label').textContent = currentSource === 'webcam' ? 'WEBCAM FEED' : (selectedFile?.name || 'FILE FEED');
+      startPolling();
+    }
+  }
+
+  async function stopDetection() {
+    await fetch(`${API}/api/stop`, { method: 'POST' });
+    isRunning = false;
+    stopPolling();
+    resetUI();
+  }
+
+  function resetUI() {
+    document.getElementById('btn-start').style.display = 'block';
+    document.getElementById('btn-stop').style.display = 'none';
+    document.getElementById('video-feed').style.display = 'none';
+    document.getElementById('video-placeholder').style.display = 'flex';
+    document.getElementById('feed-source-label').textContent = 'NO FEED';
+    setStatus('idle', 0);
+    document.getElementById('main-dot').className = 'status-dot';
+    document.getElementById('main-status-text').textContent = 'STANDBY';
+  }
+
+  // --- POLLING ---
+  function startPolling() {
+    pollInterval = setInterval(pollStatus, 500);
+  }
+
+  function stopPolling() {
+    if (pollInterval) clearInterval(pollInterval);
+    pollInterval = null;
+  }
+
+  let lastAlertId = null;
+
+  async function pollStatus() {
+    try {
+      const res = await fetch(`${API}/api/status`);
+      if (!res.ok) return;
+      const data = await res.json();
+
+      if (!data.active && isRunning) {
+        isRunning = false;
+        stopPolling();
+        resetUI();
+        loadHistory();
+        return;
+      }
+
+      setStatus(data.label === 'VIOLENCE DETECTED' ? 'alert' : 'safe', data.score);
+
+      // Check history for new alert
+      const histRes = await fetch(`${API}/api/history`);
+      const history = await histRes.json();
+      if (history.length > 0 && history[0].id !== lastAlertId) {
+        lastAlertId = history[0].id;
+        addRecentAlert(history[0]);
+      }
+    } catch (e) {}
+  }
+
+  function setStatus(state, score) {
+    const fill = document.getElementById('score-fill');
+    const val = document.getElementById('score-value');
+    const badge = document.getElementById('detection-badge');
+    const dot = document.getElementById('main-dot');
+    const statusText = document.getElementById('main-status-text');
+    const videoCard = document.getElementById('video-card');
+    const alertOverlay = document.getElementById('alert-overlay');
+
+    const pct = Math.min(score * 100, 100);
+    fill.style.width = pct + '%';
+
+    if (state === 'alert') {
+      fill.style.background = 'linear-gradient(90deg, #e8281e, #ff5a50)';
+      val.style.color = 'var(--accent2)';
+      badge.className = 'video-badge badge-alert';
+      badge.textContent = '⚠ VIOLENCE DETECTED';
+      dot.className = 'status-dot alert';
+      statusText.textContent = 'ALERT';
+      videoCard.classList.add('violence-active');
+      alertOverlay.style.display = 'block';
+    } else if (state === 'safe') {
+      fill.style.background = score > 0.5 ? 'var(--warn)' : 'var(--safe)';
+      val.style.color = 'var(--safe)';
+      badge.className = 'video-badge badge-normal';
+      badge.textContent = '✓ NORMAL';
+      dot.className = 'status-dot active';
+      statusText.textContent = 'MONITORING';
+      videoCard.classList.remove('violence-active');
+      alertOverlay.style.display = 'none';
+    } else {
+      fill.style.width = '0%';
+      fill.style.background = 'var(--safe)';
+      val.style.color = 'var(--safe)';
+      badge.className = 'video-badge badge-idle';
+      badge.textContent = 'IDLE';
+      videoCard.classList.remove('violence-active');
+      alertOverlay.style.display = 'none';
+    }
+
+    val.textContent = score.toFixed(3);
+  }
+
+  // --- RECENT ALERTS SIDEBAR ---
+  function addRecentAlert(entry) {
+    const container = document.getElementById('recent-alerts');
+    const existing = container.querySelector('p');
+    if (existing) existing.remove();
+
+    const el = document.createElement('div');
+    el.style.cssText = 'padding: 8px 0; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 10px;';
+    el.innerHTML = `
+      <div style="color: var(--accent); margin-bottom: 3px;">⚠ ALERT CAPTURED</div>
+      <div style="color: var(--text-dim);">${entry.timestamp}</div>
+      <div style="color: var(--text-dim);">SRC: ${entry.source}</div>
+      <div style="color: var(--text-dim);">SCORE: ${entry.score}</div>
+    `;
+    container.insertBefore(el, container.firstChild);
+  }
+
+  // --- HISTORY TAB ---
+  async function loadHistory() {
+    const res = await fetch(`${API}/api/history`);
+    const history = await res.json();
+    const grid = document.getElementById('history-grid');
+    const count = document.getElementById('incident-count');
+
+    count.textContent = `${history.length} INCIDENT${history.length !== 1 ? 'S' : ''} RECORDED`;
+
+    if (history.length === 0) {
+      grid.innerHTML = `<div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <p>NO INCIDENTS RECORDED</p>
+        <p style="margin-top:8px; font-size: 10px; opacity: 0.5;">VIOLENCE DETECTIONS WILL APPEAR HERE</p>
+      </div>`;
+      return;
+    }
+
+    grid.innerHTML = history.map((entry, idx) => `
+      <div class="incident-card" style="animation-delay: ${idx * 0.05}s">
+        <div class="incident-header">
+          <span class="incident-id">INC-${entry.id}</span>
+          <span class="incident-score">SCORE: ${entry.score}</span>
+        </div>
+        <div class="incident-meta">
+          <div class="meta-row">
+            <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+            <span>${entry.source}</span>
+          </div>
+          <div class="meta-row">
+            <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 15H11v-6h2v6zm0-8H11V7h2v2z"/></svg>
+            <span>${entry.timestamp}</span>
+          </div>
+        </div>
+        <div class="screenshots-strip">
+          ${entry.screenshots.map((s, i) => `
+            <div class="thumb" onclick="openLightbox('/static/${s}', 'INC-${entry.id} · FRAME ${i+1} · ${entry.timestamp}')">
+              <img src="/static/${s}" alt="Evidence frame ${i+1}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 60%22><rect fill=%22%23131a22%22 width=%22100%22 height=%2260%22/><text x=%2250%22 y=%2235%22 fill=%22%23566573%22 text-anchor=%22middle%22 font-size=%228%22>NO IMAGE</text></svg>'"/>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function clearHistory() {
+    if (!confirm('Clear all incident history? This cannot be undone.')) return;
+    await fetch(`${API}/api/history/clear`, { method: 'POST' });
+    loadHistory();
+    document.getElementById('recent-alerts').innerHTML = '<p style="font-family: var(--mono); font-size: 11px; color: var(--text-dim); text-align:center; padding: 12px 0;">NO ALERTS YET</p>';
+    lastAlertId = null;
+  }
+
+  // --- LIGHTBOX ---
+  function openLightbox(src, caption) {
+    document.getElementById('lightbox-img').src = src;
+    document.getElementById('lightbox-caption').textContent = caption;
+    document.getElementById('lightbox').classList.add('open');
+  }
+
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('open');
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+  // --- INIT ---
+  loadHistory();
+</script>
+</body>
+</html>

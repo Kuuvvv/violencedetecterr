@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SENTINEL | Public Archive</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0d12;
+    color: #c8d3de;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ── Top Nav ── */
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    height: 52px;
+    background: #0d1117;
+    border-bottom: 1px solid #1c2530;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .nav-left { display: flex; align-items: center; gap: 10px; }
+  .logo {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: #e2eaf2;
+  }
+  .nav-badge {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    color: #5a8fa8;
+    background: #0f2030;
+    border: 1px solid #1a3a50;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .record-count {
+    font-size: 12px;
+    color: #4a6070;
+  }
+
+  /* ── Filter Bar ── */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 28px;
+    background: #0d1117;
+    border-bottom: 1px solid #1c2530;
+    flex-wrap: wrap;
+  }
+  .filter-bar input {
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: 1px solid #1c2530;
+    background: #111820;
+    color: #c8d3de;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .filter-bar input::placeholder { color: #3a4f60; }
+  .filter-bar input:focus { border-color: #2a5070; }
+  #locFilter { width: 200px; }
+  #dateFilter { width: 160px; color: #c8d3de; }
+  .btn {
+    height: 34px;
+    padding: 0 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .btn-primary {
+    background: #1a3a55;
+    border: 1px solid #2a5070;
+    color: #8fc8e8;
+  }
+  .btn-primary:hover { background: #1f4565; }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid #1c2530;
+    color: #4a6070;
+  }
+  .btn-ghost:hover { border-color: #2a3a48; color: #6a8090; }
+  .filter-results {
+    margin-left: auto;
+    font-size: 12px;
+    color: #3a5060;
+  }
+
+  /* ── Grid ── */
+  .grid-wrap { padding: 24px 28px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+  }
+
+  /* ── Card ── */
+  .card {
+    background: #0f1620;
+    border: 1px solid #1c2530;
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.15s, transform 0.1s;
+  }
+  .card:hover {
+    border-color: #2a3d50;
+    transform: translateY(-1px);
+  }
+  .thumb {
+    width: 100%;
+    height: 128px;
+    background: #111820;
+    border-bottom: 1px solid #1c2530;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .thumb-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: #2a3a48;
+  }
+  .thumb-placeholder svg { width: 28px; height: 28px; }
+  .thumb-placeholder span { font-size: 11px; letter-spacing: 0.06em; }
+
+  .card-body { padding: 12px 14px 14px; }
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .location {
+    font-size: 13px;
+    font-weight: 500;
+    color: #dde7f0;
+    line-height: 1.3;
+  }
+
+  .timestamp {
+    font-size: 11px;
+    color: #3a5060;
+    margin-bottom: 10px;
+  }
+  .card-footer {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .chip {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+  }
+  .chip-type { background: #111e2a; color: #4a7898; border: 1px solid #1a3040; }
+  .chip-low  { background: #0e1e12; color: #3a8a50; border: 1px solid #1a4028; }
+  .chip-med  { background: #1e1800; color: #9a7830; border: 1px solid #3a2e00; }
+  .chip-high { background: #200e0e; color: #a84040; border: 1px solid #401a1a; }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.88);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #0f1620;
+    border: 1px solid #1c2530;
+    border-radius: 12px;
+    overflow: hidden;
+    max-width: 860px;
+    width: 100%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid #1c2530;
+    flex-shrink: 0;
+  }
+  .modal-title { font-size: 13px; font-weight: 500; color: #dde7f0; }
+  .modal-meta { font-size: 11px; color: #3a5060; margin-top: 2px; }
+  .modal-close {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    border: 1px solid #1c2530;
+    background: transparent;
+    color: #4a6070;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; line-height: 1;
+    transition: background 0.15s, color 0.15s;
+  }
+  .modal-close:hover { background: #1a2530; color: #c8d3de; }
+  .modal-img-wrap {
+    flex: 1;
+    overflow: hidden;
+    background: #060a0e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 320px;
+  }
+  .modal-img-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+  .modal-placeholder {
+    display: flex; flex-direction: column; align-items: center; gap: 8px; color: #2a3a48;
+  }
+  .modal-placeholder svg { width: 44px; height: 44px; }
+  .modal-placeholder p { font-size: 12px; letter-spacing: 0.06em; }
+  .modal-footer {
+    display: flex; align-items: center; gap: 6px;
+    padding: 12px 18px;
+    border-top: 1px solid #1c2530;
+    flex-shrink: 0;
+  }
+  .card { cursor: pointer; }
+
+  /* ── Empty state ── */
+  .empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 0;
+    color: #2a3a48;
+  }
+  .empty svg { width: 36px; height: 36px; margin-bottom: 10px; opacity: 0.4; }
+  .empty p { font-size: 13px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-left">
+    <span class="logo">SENTINEL</span>
+    <span class="nav-badge">PUBLIC ARCHIVE</span>
+  </div>
+  <span class="record-count" id="count-tag">— records</span>
+</nav>
+
+<div class="filter-bar">
+  <input type="text" id="locFilter" placeholder="Search location…">
+  <input type="date" id="dateFilter">
+  <button class="btn btn-primary" onclick="applyFilters()">Apply</button>
+  <button class="btn btn-ghost" onclick="clearFilters()">Clear</button>
+  <span class="filter-results" id="filter-results"></span>
+</div>
+
+<div class="grid-wrap">
+  <div class="grid" id="public-grid"></div>
+</div>
+
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-title">—</div>
+        <div class="modal-meta" id="modal-meta">—</div>
+      </div>
+      <button class="modal-close" onclick="closeModal(null)">&#x2715;</button>
+    </div>
+    <div class="modal-img-wrap" id="modal-img-wrap">
+      <div class="modal-placeholder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <rect x="2" y="4" width="20" height="14" rx="2"/>
+          <circle cx="8" cy="11" r="2"/>
+          <path d="M2 17l4-4 3 3 4-5 5 6"/>
+        </svg>
+        <p>NO CAPTURE AVAILABLE</p>
+      </div>
+    </div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<script>
+const MOCK = [
+  { location: "Gate 1 — North Entry",  timestamp: "2025-04-14 · 09:41", type: "Motion",    severity: "Low" },
+  { location: "Parking Deck B",         timestamp: "2025-04-14 · 11:05", type: "Intrusion", severity: "Medium" },
+  { location: "Server Room C2",         timestamp: "2025-04-13 · 23:17", type: "Access",    severity: "High" },
+  { location: "Lobby — Main Floor",     timestamp: "2025-04-13 · 14:33", type: "Motion",    severity: "Low" },
+  { location: "Gate 2 — East Wing",     timestamp: "2025-04-12 · 08:59", type: "Perimeter", severity: "Medium" },
+  { location: "Loading Bay 3",          timestamp: "2025-04-12 · 16:22", type: "Intrusion", severity: "Low" },
+  { location: "Roof Access — Level 5",  timestamp: "2025-04-11 · 21:04", type: "Access",    severity: "High" },
+  { location: "Corridor B2",            timestamp: "2025-04-11 · 13:50", type: "Motion",    severity: "Low" },
+  { location: "Gate 3 — Service Entry", timestamp: "2025-04-10 · 07:30", type: "Perimeter", severity: "Medium" },
+];
+
+function openModal(e) {
+  document.getElementById('modal-title').textContent = e.location;
+  document.getElementById('modal-meta').textContent = e.timestamp;
+  const wrap = document.getElementById('modal-img-wrap');
+  if (e.screenshot) {
+    wrap.innerHTML = `<img src="/static/${e.screenshot}" alt="${e.location}">`;
+  } else {
+    wrap.innerHTML = `<div class="modal-placeholder">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+        <rect x="2" y="4" width="20" height="14" rx="2"/>
+        <circle cx="8" cy="11" r="2"/>
+        <path d="M2 17l4-4 3 3 4-5 5 6"/>
+      </svg>
+      <p>NO CAPTURE AVAILABLE</p>
+    </div>`;
+  }
+  document.getElementById('modal-footer').innerHTML =
+    `<span class="chip chip-type">${e.type}</span><span class="chip ${sevClass(e.severity)}">${e.severity}</span>`;
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal(evt) {
+  if (evt && evt.target !== document.getElementById('modal')) return;
+  document.getElementById('modal').classList.remove('open');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.getElementById('modal').classList.remove('open'); });
+
+// Corrected missing function declaration here
+function sevClass(s) {
+  return s === "High" ? "chip-high" : s === "Medium" ? "chip-med" : "chip-low";
+}
+
+let currentData = [];
+
+function cardHTML(e, i) {
+  return `
+  <div class="card" onclick="openModal(currentData[${i}])">
+    <div class="thumb">
+      <div class="thumb-placeholder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <rect x="2" y="4" width="20" height="14" rx="2"/>
+          <circle cx="8" cy="11" r="2"/>
+          <path d="M2 17l4-4 3 3 4-5 5 6"/>
+        </svg>
+        <span>CAPTURE</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="card-header">
+        <span class="location">${e.location}</span>
+      </div>
+      <div class="timestamp">${e.timestamp}</div>
+      <div class="card-footer">
+        <span class="chip chip-type">${e.type}</span>
+        <span class="chip ${sevClass(e.severity)}">${e.severity}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function render(data) {
+  currentData = data;
+  const grid = document.getElementById('public-grid');
+  const countEl = document.getElementById('count-tag');
+  countEl.textContent = data.length + ' record' + (data.length !== 1 ? 's' : '');
+  if (!data.length) {
+    grid.innerHTML = `<div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <p>No matching records</p>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = data.map((e, i) => cardHTML(e, i)).join('');
+}
+
+function applyFilters() {
+  const loc = document.getElementById('locFilter').value.toLowerCase().trim();
+  const date = document.getElementById('dateFilter').value;
+  const filtered = MOCK.filter(e =>
+    (!loc || e.location.toLowerCase().includes(loc)) &&
+    (!date || e.timestamp.startsWith(date))
+  );
+  document.getElementById('filter-results').textContent =
+    (loc || date) ? filtered.length + ' of ' + MOCK.length + ' shown' : '';
+  render(filtered);
+}
+
+function clearFilters() {
+  document.getElementById('locFilter').value = '';
+  document.getElementById('dateFilter').value = '';
+  document.getElementById('filter-results').textContent = '';
+  render(MOCK);
+}
+
+// Replace with: fetch('/api/history').then(r=>r.json()).then(render)
+render(MOCK);
+</script>
+</body>
+</html>

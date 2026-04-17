@@ -1,0 +1,112 @@
+[
+  {
+    "id": "20260417_115258",
+    "timestamp": "2026-04-17 11:53:01",
+    "location": "File Upload",
+    "source": "V_7.mp4",
+    "screenshots": [
+      "detections/incident_20260417_115258_f0.jpg",
+      "detections/incident_20260417_115258_f20.jpg",
+      "detections/incident_20260417_115258_f40.jpg",
+      "detections/incident_20260417_115258_f60.jpg"
+    ],
+    "score": 0.857,
+    "privacy_protected": true
+  },
+  {
+    "id": "20260417_114414",
+    "timestamp": "2026-04-17 11:44:14",
+    "location": "File Upload",
+    "source": "V_641.mp4",
+    "screenshots": [
+      "detections/incident_20260417_114414_f0.jpg",
+      "detections/incident_20260417_114414_f20.jpg",
+      "detections/incident_20260417_114414_f40.jpg",
+      "detections/incident_20260417_114414_f60.jpg"
+    ],
+    "score": 0.987,
+    "privacy_protected": true
+  },
+  {
+    "id": "20260417_114023",
+    "timestamp": "2026-04-17 11:40:23",
+    "location": "File Upload",
+    "source": "V_299.mp4",
+    "screenshots": [
+      "detections/incident_20260417_114023_f0.jpg",
+      "detections/incident_20260417_114023_f20.jpg",
+      "detections/incident_20260417_114023_f40.jpg",
+      "detections/incident_20260417_114023_f60.jpg"
+    ],
+    "score": 0.929,
+    "privacy_protected": true
+  },
+  {
+    "id": "20260417_114005",
+    "timestamp": "2026-04-17 11:40:06",
+    "location": "File Upload",
+    "source": "V_299.mp4",
+    "screenshots": [
+      "detections/incident_20260417_114005_f0.jpg",
+      "detections/incident_20260417_114005_f20.jpg",
+      "detections/incident_20260417_114005_f40.jpg",
+      "detections/incident_20260417_114005_f60.jpg"
+    ],
+    "score": 0.955,
+    "privacy_protected": true
+  },
+  {
+    "id": "20260417_113927",
+    "timestamp": "2026-04-17 11:39:28",
+    "location": "File Upload",
+    "source": "V_8.mp4",
+    "screenshots": [
+      "detections/incident_20260417_113927_f0.jpg",
+      "detections/incident_20260417_113927_f20.jpg",
+      "detections/incident_20260417_113927_f40.jpg",
+      "detections/incident_20260417_113927_f60.jpg"
+    ],
+    "score": 0.859,
+    "privacy_protected": true
+  },
+  {
+    "id": "20260417_113858",
+    "timestamp": "2026-04-17 11:39:00",
+    "location": "File Upload",
+    "source": "V_8.mp4",
+    "screenshots": [
+      "detections/incident_20260417_113858_f0.jpg",
+      "detections/incident_20260417_113858_f20.jpg",
+      "detections/incident_20260417_113858_f40.jpg",
+      "detections/incident_20260417_113858_f60.jpg"
+    ],
+    "score": 0.859,
+    "privacy_protected": true
+  },
+  {
+    "id": "20260417_114502",
+    "timestamp": "2026-04-17 11:45:02",
+    "location": "North Campus - Block B Entrance",
+    "source": "Webcam",
+    "screenshots": [
+      "detections/incident_20260417_114502_f0.jpg",
+      "detections/incident_20260417_114502_f20.jpg",
+      "detections/incident_20260417_114502_f40.jpg",
+      "detections/incident_20260417_114502_f60.jpg"
+    ],
+    "score": 0.942,
+    "privacy_protected": true
+  },
+  {
+    "id": "20260417_101530",
+    "timestamp": "2026-04-17 10:15:30",
+    "location": "Main Canteen - Corridor 4",
+    "source": "test_fight.mp4",
+    "screenshots": [
+      "detections/incident_20260417_101530_f0.jpg",
+      "detections/incident_20260417_101530_f20.jpg"
+    ],
+    "score": 0.887,
+    "privacy_protected": true
+  }
+]
